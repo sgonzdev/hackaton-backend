@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: hackaton-node-api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # Use host.docker.internal to connect to host MySQL
+      # On Linux, use extra_hosts below or 172.17.0.1
+      - DB_HOST=host.docker.internal
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-}
+      - DB_NAME=hackaton_db
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-this}
+      - JWT_EXPIRES_IN=24h
+      - CORS_ORIGIN=http://localhost:3000
+
+    volumes:
+      # Montar el código fuente para hot-reload
+      - ./src:/app/src
+      - ./nodemon.json:/app/nodemon.json
+      - ./package.json:/app/package.json
+      # Evitar que node_modules del host sobrescriba el del contenedor
+      - /app/node_modules
+
+    extra_hosts:
+      # For Linux: allow container to access host MySQL
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - app-network
+    command: npm run dev
+
+networks:
+  app-network:
+    driver: bridge
