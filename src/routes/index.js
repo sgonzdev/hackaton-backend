@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const authRoutes = require('./authRoutes');
+const productoRoutes = require('./productoRoutes');
+const artesanoRoutes = require('./artesanoRoutes');
+const imagenRoutes = require('./imagenRoutes');
 
-// Health check endpoint
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
@@ -11,7 +13,10 @@ router.get('/health', (req, res) => {
   });
 });
 
-// Auth routes
 router.use('/auth', authRoutes);
+
+router.use('/productos', productoRoutes);
+router.use('/artesanos', artesanoRoutes);
+router.use('/imagenes', imagenRoutes);
 
 module.exports = router;
