@@ -6,6 +6,9 @@ const artesanoRoutes = require('./artesanoRoutes');
 const imagenRoutes = require('./imagenRoutes');
 const blockchainRoutes = require('./blockchainRoutes');
 const resenaRoutes = require('./resenaRoutes');
+const carritoRoutes = require('./carritoRoutes');
+const checkoutRoutes = require('./checkoutRoutes');
+const ordenRoutes = require('./ordenRoutes');
 
 router.get('/health', (_req, res) => {
   res.status(200).json({
@@ -22,5 +25,8 @@ router.use('/artesanos', artesanoRoutes);
 router.use('/imagenes', imagenRoutes);
 router.use('/blockchain', blockchainRoutes);
 router.use('/resenas', resenaRoutes);
+router.use('/carrito', carritoRoutes);
+router.use('/checkout', checkoutRoutes);
+router.use('/ordenes', ordenRoutes);
 
 module.exports = router;
