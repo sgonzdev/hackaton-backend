@@ -9,6 +9,7 @@ const resenaRoutes = require('./resenaRoutes');
 const carritoRoutes = require('./carritoRoutes');
 const checkoutRoutes = require('./checkoutRoutes');
 const ordenRoutes = require('./ordenRoutes');
+const estadisticaRoutes = require('./estadisticaRoutes');
 
 router.get('/health', (_req, res) => {
   res.status(200).json({
@@ -28,5 +29,6 @@ router.use('/resenas', resenaRoutes);
 router.use('/carrito', carritoRoutes);
 router.use('/checkout', checkoutRoutes);
 router.use('/ordenes', ordenRoutes);
+router.use('/estadisticas', estadisticaRoutes);
 
 module.exports = router;
