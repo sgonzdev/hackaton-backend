@@ -163,6 +163,18 @@ class Producto {
     }
   }
 
+  static async updateBlockchainHash(id, hash) {
+    try {
+      const [result] = await pool.query(
+        'UPDATE producto SET certificado_blockchain = ? WHERE id_producto = ?',
+        [hash, id]
+      );
+      return result.affectedRows > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   static async updateStock(id, cantidad) {
     try {
       const [result] = await pool.query(

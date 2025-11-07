@@ -2,6 +2,7 @@ const Producto = require('../models/Producto');
 const User = require('../models/User');
 const QRService = require('./qrService');
 const ImagenService = require('./imagenService');
+const blockchainService = require('./blockchainService');
 
 class ProductoService {
 
@@ -45,7 +46,28 @@ class ProductoService {
       console.error('Error generando QR:', qrError);
     }
 
-    return producto;
+    // Generar certificado blockchain
+    let certificadoBlockchain = null;
+    try {
+      certificadoBlockchain = blockchainService.crearCertificadoProducto({
+        id_producto: producto.id_producto,
+        nombre: producto.nombre,
+        id_usuario: producto.id_usuario,
+        precio: producto.precio,
+        categoria: producto.categoria
+      });
+
+      // Guardar hash del certificado en la BD
+      await Producto.updateBlockchainHash(producto.id_producto, certificadoBlockchain.hash);
+      producto.certificado_blockchain = certificadoBlockchain.hash;
+    } catch (blockchainError) {
+      console.error('Error generando certificado blockchain:', blockchainError);
+    }
+
+    return {
+      ...producto,
+      blockchain_info: certificadoBlockchain
+    };
   }
 
   static async obtenerTodos() {
