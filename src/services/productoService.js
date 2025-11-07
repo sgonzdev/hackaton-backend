@@ -3,11 +3,12 @@ const User = require('../models/User');
 const QRService = require('./qrService');
 const ImagenService = require('./imagenService');
 const blockchainService = require('./blockchainService');
+const HistoriaProducto = require('../models/HistoriaProducto');
 
 class ProductoService {
 
   static async crear(datosProducto, id_usuario, archivosImagenes = null) {
-    const { nombre, descripcion, precio, stock, categoria, video_proceso } = datosProducto;
+    const { nombre, descripcion, precio, stock, categoria, video_proceso, historia } = datosProducto;
 
     if (!nombre || !precio || stock === undefined) {
       throw new Error('Nombre, precio y stock son requeridos');
@@ -64,9 +65,30 @@ class ProductoService {
       console.error('Error generando certificado blockchain:', blockchainError);
     }
 
+    // Crear historia del producto si viene en los datos
+    let historiaCreada = null;
+    if (historia) {
+      try {
+        // Parsear historia si viene como string JSON
+        const historiaData = typeof historia === 'string' ? JSON.parse(historia) : historia;
+
+        if (historiaData.descripcion) {
+          historiaCreada = await HistoriaProducto.create({
+            id_producto: producto.id_producto,
+            descripcion: historiaData.descripcion,
+            tags: historiaData.tags || []
+          });
+          producto.historia = historiaCreada;
+        }
+      } catch (historiaError) {
+        console.error('Error creando historia del producto:', historiaError);
+      }
+    }
+
     return {
       ...producto,
-      blockchain_info: certificadoBlockchain
+      blockchain_info: certificadoBlockchain,
+      historia: historiaCreada
     };
   }
 
@@ -101,6 +123,16 @@ class ProductoService {
       const error = new Error('Producto no encontrado');
       error.statusCode = 404;
       throw error;
+    }
+
+    // Obtener historia del producto si existe
+    try {
+      const historia = await HistoriaProducto.findByProductoId(id);
+      if (historia) {
+        producto.historia = historia;
+      }
+    } catch (historiaError) {
+      console.error('Error obteniendo historia del producto:', historiaError);
     }
 
     return producto;

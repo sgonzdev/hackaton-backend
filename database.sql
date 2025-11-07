@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS usuario (
   correo VARCHAR(255) UNIQUE NOT NULL,
   contrasena VARCHAR(255) NOT NULL,
   roles ENUM('ARTESANO', 'COMPRADOR') NOT NULL DEFAULT 'COMPRADOR',
+  ubicacion VARCHAR(255),
+  tags JSON,
   qr LONGTEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -80,6 +82,19 @@ CREATE TABLE IF NOT EXISTS resena (
 );
 
 -- ======================================
+-- TABLA: Historia del Producto
+-- ======================================
+CREATE TABLE IF NOT EXISTS historia_producto (
+  id_historia INT AUTO_INCREMENT PRIMARY KEY,
+  id_producto INT NOT NULL UNIQUE,
+  descripcion TEXT NOT NULL,
+  tags JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_producto) REFERENCES producto(id_producto) ON DELETE CASCADE
+);
+
+-- ======================================
 -- TABLA INTERMEDIA: Carrito - Producto
 -- ======================================
 CREATE TABLE IF NOT EXISTS carrito_producto (
@@ -120,3 +135,4 @@ CREATE INDEX idx_compra_fecha ON compra(fecha);
 CREATE INDEX idx_compra_estado ON compra(estado);
 CREATE INDEX idx_resena_producto ON resena(id_producto);
 CREATE INDEX idx_resena_usuario ON resena(id_usuario);
+CREATE INDEX idx_historia_producto ON historia_producto(id_producto);

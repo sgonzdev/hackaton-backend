@@ -5,7 +5,7 @@ const QRService = require('./qrService');
 class AuthService {
 
   static async registrar(datosUsuario) {
-    const { nombre, correo, contrasena, roles } = datosUsuario;
+    const { nombre, correo, contrasena, roles, ubicacion, tags } = datosUsuario;
 
     if (!nombre || !correo || !contrasena) {
       const error = new Error('Todos los campos son requeridos (nombre, correo, contrasena)');
@@ -32,6 +32,13 @@ class AuthService {
       throw error;
     }
 
+    // Validar que solo artesanos pueden tener ubicación y tags
+    if ((ubicacion || tags) && roles !== 'ARTESANO') {
+      const error = new Error('Solo los artesanos pueden tener ubicación y tags');
+      error.statusCode = 403;
+      throw error;
+    }
+
     const existingUser = await User.findByEmail(correo);
     if (existingUser) {
       const error = new Error('El correo ya está registrado');
@@ -39,7 +46,19 @@ class AuthService {
       throw error;
     }
 
-    const user = await User.create({ nombre, correo, contrasena, roles });
+    // Parsear tags si vienen como string
+    let tagsArray = tags;
+    if (typeof tags === 'string') {
+      try {
+        tagsArray = JSON.parse(tags);
+      } catch (e) {
+        const error = new Error('Formato de tags inválido. Debe ser un array JSON');
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+
+    const user = await User.create({ nombre, correo, contrasena, roles, ubicacion, tags: tagsArray });
 
     // Si es un artesano, generar QR
     if (user.roles === 'ARTESANO') {
@@ -64,6 +83,8 @@ class AuthService {
         nombre: user.nombre,
         correo: user.correo,
         roles: user.roles,
+        ubicacion: user.ubicacion,
+        tags: user.tags,
         qr: user.qr
       },
       token
@@ -105,6 +126,8 @@ class AuthService {
         nombre: user.nombre,
         correo: user.correo,
         roles: user.roles,
+        ubicacion: user.ubicacion,
+        tags: user.tags,
         qr: user.qr
       },
       token
@@ -125,6 +148,8 @@ class AuthService {
       nombre: user.nombre,
       correo: user.correo,
       roles: user.roles,
+      ubicacion: user.ubicacion,
+      tags: user.tags,
       qr: user.qr,
       created_at: user.created_at
     };

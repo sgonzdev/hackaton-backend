@@ -6,22 +6,39 @@ Base URL: `http://localhost:3000/api`
 
 ## 🔐 Autenticación (`/auth`)
 
-### 1. Registrar Usuario
+### 1. Registrar Usuario (CON UBICACIÓN Y TAGS PARA ARTESANOS)
 ```
 POST /api/auth/register
 ```
 
-**Body (JSON):**
+**Body (JSON) para COMPRADOR:**
 ```json
 {
   "nombre": "Juan Pérez",
   "correo": "juan@example.com",
   "contrasena": "password123",
-  "roles": "COMPRADOR"  // O "ARTESANO"
+  "roles": "COMPRADOR"
 }
 ```
 
-**Respuesta Exitosa (201):**
+**Body (JSON) para ARTESANO (con ubicación y tags opcionales):**
+```json
+{
+  "nombre": "María Artesana",
+  "correo": "maria@example.com",
+  "contrasena": "password123",
+  "roles": "ARTESANO",
+  "ubicacion": "Bogotá, Colombia",
+  "tags": ["Cerámica", "Textiles", "Joyería artesanal"]
+}
+```
+
+**Nota:**
+- `ubicacion` y `tags` son **solo para ARTESANOS**
+- Los COMPRADORES no pueden tener ubicación ni tags
+- `tags` es un array de strings
+
+**Respuesta Exitosa (201) - COMPRADOR:**
 ```json
 {
   "success": true,
@@ -31,7 +48,30 @@ POST /api/auth/register
       "id_usuario": 1,
       "nombre": "Juan Pérez",
       "correo": "juan@example.com",
-      "roles": "COMPRADOR"
+      "roles": "COMPRADOR",
+      "ubicacion": null,
+      "tags": null,
+      "qr": null
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+**Respuesta Exitosa (201) - ARTESANO:**
+```json
+{
+  "success": true,
+  "message": "Usuario registrado exitosamente",
+  "data": {
+    "user": {
+      "id_usuario": 2,
+      "nombre": "María Artesana",
+      "correo": "maria@example.com",
+      "roles": "ARTESANO",
+      "ubicacion": "Bogotá, Colombia",
+      "tags": ["Cerámica", "Textiles", "Joyería artesanal"],
+      "qr": "data:image/png;base64,..."
     },
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
@@ -159,7 +199,7 @@ GET /api/productos/search?page=1&limit=10&categoria=Cerámica&busqueda=artesanal
 
 ---
 
-### 3. Obtener Producto por ID
+### 3. Obtener Producto por ID (CON HISTORIA)
 ```
 GET /api/productos/:id
 ```
@@ -176,20 +216,29 @@ GET /api/productos/1
   "data": {
     "producto": {
       "id_producto": 1,
-      "nombre": "Camiseta deportiva",
+      "nombre": "Cerámica artesanal",
       "descripcion": "...",
       "precio": "59.99",
       "stock": 120,
-      "categoria": "Ropa deportiva",
+      "categoria": "Cerámica",
       "imagenes": ["imagen1.png"],
       "qr": "data:image/png;base64,...",
       "certificado_blockchain": "00e85e8395ba...",
       "video_proceso": "https://...",
-      "id_usuario": 1
+      "id_usuario": 1,
+      "historia": {
+        "id_historia": 1,
+        "id_producto": 1,
+        "descripcion": "Esta pieza fue elaborada por artesanos de la región andina usando técnicas ancestrales transmitidas de generación en generación...",
+        "tags": ["Hecho a mano", "Técnica ancestral", "Producto único", "Comercio justo"],
+        "created_at": "2025-11-07T10:00:00.000Z"
+      }
     }
   }
 }
 ```
+
+**Nota:** Si el producto no tiene historia, el campo `historia` no aparecerá o será `null`.
 
 ---
 
@@ -217,7 +266,7 @@ Authorization: Bearer {token}
 
 ---
 
-### 6. Crear Producto (Requiere autenticación - Solo artesanos)
+### 6. Crear Producto CON HISTORIA OPCIONAL (Requiere autenticación - Solo artesanos)
 ```
 POST /api/productos
 Authorization: Bearer {token}
@@ -232,8 +281,31 @@ precio: 50.00
 stock: 10
 categoria: "Cerámica"
 video_proceso: "https://..."  (opcional)
-imagenes: [File, File]  (hasta 10 imágenes)
+imagenes: [File, File]  (hasta 10 imágenes, opcional)
+
+// NUEVO: Historia del producto (OPCIONAL, como JSON string)
+historia: '{"descripcion": "Esta pieza fue elaborada...", "tags": ["Hecho a mano", "Técnica ancestral"]}'
 ```
+
+**Formato de historia (JSON string):**
+```json
+{
+  "descripcion": "Historia completa del producto: su origen, técnicas utilizadas, tradición, etc.",
+  "tags": ["Hecho a mano", "Técnica ancestral", "Producto único", "Comercio justo"]
+}
+```
+
+**Ejemplos de tags sugeridos:**
+- `"Hecho a mano"`
+- `"Técnica ancestral"`
+- `"Producto único"`
+- `"Comercio justo"`
+- `"Artesanía tradicional"`
+- `"Materiales naturales"`
+- `"Diseño original"`
+- `"Edición limitada"`
+- `"Sostenible"`
+- `"Producción local"`
 
 **Respuesta Exitosa (201):**
 ```json
@@ -252,11 +324,19 @@ imagenes: [File, File]  (hasta 10 imágenes)
         "hash": "abc123...",
         "index": 2,
         "timestamp": "2025-11-07T15:30:00.000Z"
+      },
+      "historia": {
+        "id_historia": 1,
+        "id_producto": 5,
+        "descripcion": "Esta pieza fue elaborada...",
+        "tags": ["Hecho a mano", "Técnica ancestral"]
       }
     }
   }
 }
 ```
+
+**Nota:** La historia es completamente **opcional**. Si no se proporciona, el producto se crea sin historia.
 
 ---
 
@@ -748,3 +828,27 @@ GET /api/resenas/producto/1?page=1&limit=10
 - Cada producto creado recibe automáticamente un certificado blockchain
 - El hash se guarda en la columna `certificado_blockchain` del producto
 - Los certificados son inmutables y verificables
+
+### Historia del Producto (NUEVO)
+- **Opcional**: No es obligatorio agregar historia al crear un producto
+- **Formato**: Se envía como JSON string en el FormData al crear producto
+- **Estructura**:
+  ```json
+  {
+    "descripcion": "Texto libre sobre origen, técnicas, artesano, tradición, etc.",
+    "tags": ["Tag1", "Tag2", "Tag3"]
+  }
+  ```
+- **Tags**: Array de strings descriptivos (ej: "Hecho a mano", "Técnica ancestral", "Comercio justo")
+- **Único**: Cada producto puede tener solo una historia (relación 1:1)
+- **Visualización**: La historia se incluye automáticamente al obtener un producto por ID
+- **Base de datos**: Se guarda en tabla `historia_producto` con relación a `producto`
+
+### Ubicación y Tags de Usuario (NUEVO)
+- **Solo para ARTESANOS**: Los compradores no pueden tener ubicación ni tags
+- **Ubicación**: String con la ubicación del artesano (ej: "Bogotá, Colombia", "Región Andina")
+- **Tags del artesano**: Array de strings que describen las especialidades del artesano
+  - Ejemplos: `["Cerámica", "Textiles", "Joyería artesanal", "Madera", "Cuero"]`
+- **Campos opcionales**: No son obligatorios al registrar un artesano
+- **Validación**: Si un COMPRADOR intenta agregar ubicación o tags, se rechaza con error 403
+- **Visualización**: Se incluyen automáticamente al obtener perfil o listar artesanos

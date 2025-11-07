@@ -2,15 +2,17 @@ const { pool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 
 class User {
-  static async create({ nombre, correo, contrasena, roles = 'COMPRADOR' }) {
+  static async create({ nombre, correo, contrasena, roles = 'COMPRADOR', ubicacion, tags }) {
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
 
       const hashedPassword = await bcrypt.hash(contrasena, 10);
+      const tagsJson = tags ? JSON.stringify(tags) : null;
+
       const [result] = await connection.query(
-        'INSERT INTO usuario (nombre, correo, contrasena, roles) VALUES (?, ?, ?, ?)',
-        [nombre, correo, hashedPassword, roles]
+        'INSERT INTO usuario (nombre, correo, contrasena, roles, ubicacion, tags) VALUES (?, ?, ?, ?, ?, ?)',
+        [nombre, correo, hashedPassword, roles, ubicacion || null, tagsJson]
       );
 
       const id_usuario = result.insertId;
@@ -21,7 +23,7 @@ class User {
       );
 
       await connection.commit();
-      return { id_usuario, nombre, correo, roles };
+      return { id_usuario, nombre, correo, roles, ubicacion, tags };
     } catch (error) {
       await connection.rollback();
       throw error;
@@ -45,9 +47,14 @@ class User {
   static async findById(id) {
     try {
       const [rows] = await pool.query(
-        'SELECT id_usuario, nombre, correo, roles, qr, created_at FROM usuario WHERE id_usuario = ?',
+        'SELECT id_usuario, nombre, correo, roles, ubicacion, tags, qr, created_at FROM usuario WHERE id_usuario = ?',
         [id]
       );
+
+      if (rows[0] && rows[0].tags) {
+        rows[0].tags = JSON.parse(rows[0].tags);
+      }
+
       return rows[0];
     } catch (error) {
       throw error;
@@ -90,6 +97,8 @@ class User {
           u.id_usuario,
           u.nombre,
           u.correo,
+          u.ubicacion,
+          u.tags,
           u.qr,
           u.created_at,
           COUNT(p.id_producto) as total_productos
@@ -113,7 +122,7 @@ class User {
         countQuery += ' AND ' + whereClauses.join(' AND ');
       }
 
-      query += ' GROUP BY u.id_usuario, u.nombre, u.correo, u.qr, u.created_at';
+      query += ' GROUP BY u.id_usuario, u.nombre, u.correo, u.ubicacion, u.tags, u.qr, u.created_at';
       query += ' ORDER BY u.created_at DESC';
 
       // Obtener el total de registros
@@ -125,6 +134,13 @@ class User {
       params.push(limit, offset);
 
       const [rows] = await pool.query(query, params);
+
+      // Parsear tags JSON
+      rows.forEach(row => {
+        if (row.tags) {
+          row.tags = JSON.parse(row.tags);
+        }
+      });
 
       return {
         data: rows,
@@ -144,12 +160,17 @@ class User {
     try {
       // Obtener datos del artesano
       const [artesano] = await pool.query(
-        'SELECT id_usuario, nombre, correo, qr, created_at FROM usuario WHERE id_usuario = ? AND roles = ?',
+        'SELECT id_usuario, nombre, correo, ubicacion, tags, qr, created_at FROM usuario WHERE id_usuario = ? AND roles = ?',
         [id_usuario, 'ARTESANO']
       );
 
       if (artesano.length === 0) {
         return null;
+      }
+
+      // Parsear tags si existen
+      if (artesano[0].tags) {
+        artesano[0].tags = JSON.parse(artesano[0].tags);
       }
 
       // Calcular offset
